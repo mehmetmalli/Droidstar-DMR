@@ -49,6 +49,12 @@ ApplicationWindow {
         property int qsoLogLimit: 250
     }
 
+    Settings {
+        category: "audio"
+        property alias micGain: appState.micGain
+        property alias privateCall: appState.privateCall
+    }
+
     // Material base
     Material.theme: Material.Dark
     Material.accent: t.accent

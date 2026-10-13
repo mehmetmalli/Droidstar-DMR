@@ -207,6 +207,7 @@ Page {
         droidstarRef.set_playback(appState.playback)
         droidstarRef.set_capture(appState.capture)
         droidstarRef.set_dmr_pc(appState.privateCall ? 1 : 0)
+        droidstarRef.set_input_volume(appState.micGain)
 
         if (appState.selectedHost && appState.selectedHost !== "") {
             droidstarRef.set_dst(appState.selectedHost)
@@ -453,7 +454,10 @@ Page {
                             visible: !!(appState && appState.mode === "DMR")
                             text: qsTr("Pvt")
                             checked: appState ? appState.privateCall : false
-                            onToggled: droidstarRef.set_dmr_pc(checked)
+                            onToggled: {
+                                if (appState) appState.privateCall = checked
+                                droidstarRef.set_dmr_pc(checked)
+                            }
                         }
                     }
 
@@ -538,7 +542,10 @@ Page {
                             from: 0.0
                             to: 1.0
                             value: appState ? appState.micGain : 0.5
-                            onMoved: droidstarRef.set_input_volume(value)
+                            onMoved: {
+                                if (appState) appState.micGain = value
+                                droidstarRef.set_input_volume(value)
+                            }
                         }
                         Label {
                             text: Math.round((appState ? appState.micGain : 0.5) * 100) + "%"

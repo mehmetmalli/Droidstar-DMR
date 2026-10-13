@@ -32,6 +32,7 @@ void deactivateBackgroundAudio(void);
 void renewBackgroundTask(void);
 void setPreferredInputDevice(void);
 bool isAppInBackground(void);
+double currentAudioSessionSampleRate(void);
 
 // Now Playing / Lock Screen / Control Center state updates
 void setAudioConnectionState(bool connected, const char *host, const char *mode);

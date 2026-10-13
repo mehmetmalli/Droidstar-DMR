@@ -169,7 +169,13 @@ void Mode::mmdvm_connect_status(bool s)
 
 void Mode::in_audio_vol_changed(qreal v)
 {
+#if defined(Q_OS_IOS)
+    // iOS VoiceChat-mode capture is already level-controlled; the desktop /m_attenuation
+    // scaling capped the mic at 20% for DMR, leaving TX audio far too quiet.
+    m_audio->set_input_volume(v);
+#else
     m_audio->set_input_volume(v / m_attenuation);
+#endif
 }
 
 void Mode::out_audio_vol_changed(qreal v)

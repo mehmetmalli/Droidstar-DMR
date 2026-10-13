@@ -842,6 +842,10 @@ extern "C" bool isAppInBackground() {
     return (state == UIApplicationStateBackground);
 }
 
+extern "C" double currentAudioSessionSampleRate() {
+    return [AVAudioSession sharedInstance].sampleRate;
+}
+
 extern "C" void deactivateBackgroundAudio() {
     [[AudioSessionManager sharedManager] stopKeepAliveAudio];
     deactivateAVAudioSession();

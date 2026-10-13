@@ -1410,7 +1410,7 @@ void DroidStar::update_data(Mode::MODEINFO info)
     if( (connect_status == Mode::CONNECTING) && ( info.status == Mode::CONNECTED_RW)){
         connect_status = Mode::CONNECTED_RW;
         emit connect_status_changed(2);
-        emit in_audio_vol_changed(0.5);
+        emit in_audio_vol_changed(m_micgain);
         emit swtx_state(!m_mode->get_hwtx());
         emit swrx_state(!m_mode->get_hwrx());
         emit rptr2_changed(m_refname + " " + m_module);
@@ -1602,6 +1602,7 @@ void DroidStar::updatelog(QString s)
 
 void DroidStar::set_input_volume(qreal v)
 {
+    m_micgain = v;
     emit in_audio_vol_changed(v);
     //audioin->setVolume(v * 0.01);
 }

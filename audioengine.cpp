@@ -34,6 +34,8 @@ AudioEngine::AudioEngine(QString in, QString out) :
     m_inputdevice(in),
     m_out(nullptr),
     m_in(nullptr),
+    m_outdev(nullptr),
+    m_indev(nullptr),
     m_srm(1)
 {
     m_audio_out_temp_buf_p = m_audio_out_temp_buf;
@@ -223,6 +225,16 @@ void AudioEngine::init()
         if (MACHAK) {
             // On iOS/macOS, prefer capturing at the device-native rate and resample properly to 8 kHz.
             sr = device.preferredFormat().sampleRate();
+#if defined(Q_OS_IOS)
+            // Qt (6.11) on iOS does not convert capture rates: it labels the stream with the
+            // requested rate but delivers the audio session's hardware rate (e.g. 16 kHz in
+            // VoiceChat mode). Request the session rate so the label matches the data.
+            const int sessionRate = static_cast<int>(currentAudioSessionSampleRate());
+            qDebug() << "Audio session sample rate:" << sessionRate;
+            if (sessionRate > 0) {
+                sr = sessionRate;
+            }
+#endif
         }
         format.setSampleRate(sr);
         m_in = new QAudioSource(device, format, this);
@@ -277,6 +289,11 @@ extern "C" void setupAVAudioSession();
 //extern "C" void setupPushKit();
 
 void AudioEngine::start_playback() {
+    // Since Qt 6.10, QAudioSink::start() on a running sink returns nullptr instead of
+    // restarting it, which would drop the live output device. Keep the current one.
+    if (m_outdev != nullptr) {
+        return;
+    }
     m_outdev = m_out->start();
     qDebug() << "Playback started";
 }
@@ -287,6 +304,7 @@ void AudioEngine::stop_playback()
     //m_outdev->reset();
     m_out->reset();
     m_out->stop();
+    m_outdev = nullptr;
     qDebug() << "AudioOut state Stop Playback";
     
 }

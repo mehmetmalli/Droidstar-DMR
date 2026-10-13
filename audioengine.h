@@ -19,6 +19,7 @@
 #define AUDIOENGINE_H
 
 #include <QObject>
+#include <algorithm>
 #if QT_VERSION < QT_VERSION_CHECK(6, 3, 0)
 #include <QAudio>
 #include <QAudioFormat>
@@ -51,7 +52,15 @@ public:
     void stop_playback();
     void write(int16_t *, size_t);
     void set_output_buffer_size(uint32_t b) { m_out->setBufferSize(b); }
-    void set_input_buffer_size(uint32_t b) { if(m_in != nullptr) m_in->setBufferSize(b); }
+    void set_input_buffer_size(uint32_t b) {
+#if defined(Q_OS_IOS) || defined(Q_OS_MACOS)
+        // Callers size b for 8 kHz, but capture runs at the device rate (e.g. 48 kHz). In Qt 6.11
+        // this is the capture ring buffer, and anything that doesn't fit is dropped, so scale it
+        // up and keep plenty of headroom.
+        b = std::max<uint32_t>(static_cast<uint32_t>(b * m_srm), 16384);
+#endif
+        if(m_in != nullptr) m_in->setBufferSize(b);
+    }
     void set_output_volume(qreal v){ m_out->setVolume(v); }
     void set_input_volume(qreal v){ if(m_in != nullptr) m_in->setVolume(v); }
     void set_agc(bool agc) { m_agc = agc; }

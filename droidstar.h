@@ -320,6 +320,7 @@ private:
     QString m_pkgid;
     QString m_dmropts;
     int m_pc;
+    qreal m_micgain = 0.5;
     QString m_saved_refhost;
     QString m_saved_dcshost;
     QString m_saved_xrfhost;

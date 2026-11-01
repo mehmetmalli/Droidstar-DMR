@@ -63,21 +63,6 @@ I am excited to share several features and improvements that have been previousl
 
 - **Recent TG-ID Dropdown**: The dropdown records all the recently dialed Talk Group ids and lets you choose from the list. You no longer have to memorize the TG ID.
 
-  
-## Downloads
-
-- ~~For Android users, you can download the app via [this link](https://inz.to/droidstar-vu3lvo).~~
-- ~~For older Android versions (Armabi_v7a), please use [this link](https://inz.to/droidstar-vu3lvo).~~
-
-- For iOS users, the iOS version is now available! Due to the 10k limit on TestFlight, I won't be posting the invitation link publicly. If you're interested in testing the iOS version, please mail me at vu3lvo@proton.me.
-
-## Feedback and Support
-
-Please let me know if these features are working correctly on your device. If you have any ideas or feedback, feel free to reach out. Your input is invaluable in making this app better!
-
-## Stay Updated
-Join my WhatsApp channel to stay updated on the progress, new features and to participate in polls to get your dream features / ideas implemented in DroidStar. [**Join Now**](https://inz.to/BVmSa)
-
 ## Acknowledgments
 
 This project builds on the original work by [Doug McLain](https://github.com/nostar/) and the iOS-focused modifications by [Rohith Namboothiri (VU3LVO)](https://github.com/rohithzmoi). Many thanks to Doug for his excellent foundation and contributions to the digital radio community, and to Rohith for the work this fork is based on.
@@ -86,52 +71,6 @@ This project builds on the original work by [Doug McLain](https://github.com/nos
 
 This project, including modifications, is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
 
-## Support
-
-If you would like to support the development of the Droidstar DMR iOS TestFlight or public release, you can **[buy me a coffee](https://buymeacoffee.com/rohithz)**.
-
 ---
 
-**73 VU3LVO - Rohith** (upstream) • **73 TA3JS - Mehmet** (fork maintainer)
-
----
-
-## 🌟 Contributors
-
-I deeply appreciate the incredible contributions by our patrons/contributors who have played a vital role in supporting me in keeping this project running. Your passion and commitment drive me forward, and I am honored to have you as a part of our journey. Thank you for being an essential part of this project! 🚀
-
-### Special Thanks To:
-
-- **@TXDMR** • [Reddit](https://www.reddit.com/user/TXDMR)
-- **@Impossible_Duty_8935** • [Reddit](https://www.reddit.com/user/Impossible_Duty_8935)
-- **houjoe318**
-- **beny6258**
-- **Tim GW4VXE**
-- **Ian R**
-- **N2HT**
-- **steff6272**
-- **Mark Flett**
-- **Marco KC2ZMA**
-- **Ray**
-- **K7RAN**
-- **ZL2BEZ**
-- **Vk4sm**
-- **WA3ADI**
-- **Ve2kjf**
-- **DG9MAQ**
-- **Stefan Kowal**
-- **AC1SM**
-- **Mal - VK3TV**
-- **Dennis@w2kdc**
-- **William Golden**
-- **Michael Kilsby**
-- **Esteban Mackay Quiel**
-- **KQ4HJH**
-- **Mattias**
-- **Luis Valencia castaño**
-- **Marco Iapicca**
-
-
----
-
-Want to see your name here? Contribute today (**[buy me a coffee](https://buymeacoffee.com/rohithz)**./**[Contribute Via PayPal](https://www.paypal.com/ncp/payment/NU89529268M2W)**) and join me in building the most advanced, modern, robust Digital Radio Mobile App that would help thousands of Amateur Radio Operators around the world who cannot affort expensive gears!
+**73 TA3JS - Mehmet** (fork maintainer)

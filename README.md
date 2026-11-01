@@ -1,6 +1,13 @@
-# Modified DROIDSTAR DMR App for iOS & Android
+# DroidStar DMR App for iOS
 
-## 📢 Important Announcement
+> **Fork notice:** This repository is a fork of
+> [rohithzmoi/Droidstar-DMR](https://github.com/rohithzmoi/Droidstar-DMR), the iOS-focused
+> modified DroidStar app maintained by **Rohith Namboothiri (VU3LVO)**. This fork is
+> maintained by **Mehmet Malli (TA3JS)**. Credit for all prior work belongs to Rohith and,
+> before him, to **Doug McLain (AD8DP)**, author of the
+> [original DroidStar](https://github.com/nostar/DroidStar).
+
+## 📢 Important Announcement (from the upstream maintainer, VU3LVO)
 
 **Please note:** I will no longer be maintaining the Android version, at least for the near future. Due to the complexity of maintaining both iOS and Android versions simultaneously, I've made the decision to focus exclusively on iOS development. 
 
@@ -8,9 +15,13 @@
 
 ---
 
-This project is a modified version of the [original Droidstar App](https://github.com/nostar/DroidStar) by Doug McLain. The modifications introduce new features and enhancements to improve user experience and functionality.
+This project is a fork of [VU3LVO's modified Droidstar app](https://github.com/rohithzmoi/Droidstar-DMR), which is itself a modified version of the [original Droidstar App](https://github.com/nostar/DroidStar) by Doug McLain. The modifications introduce new features and enhancements to improve user experience and functionality.
 
-This project uses QT 6.7.2
+This project is built with:
+
+- **Qt 6.11.3** (iOS)
+- **Xcode 27.0** with an iOS 17.0 deployment target
+- **Swift 5.0** (Live Activities / Dynamic Island extension)
 
 ## What's New in the Latest Update
 
@@ -69,7 +80,7 @@ Join my WhatsApp channel to stay updated on the progress, new features and to pa
 
 ## Acknowledgments
 
-This project is based on the original work by [Doug McLain](https://github.com/nostar/). Many thanks to Doug for his excellent foundation and contributions to the digital radio community.
+This project builds on the original work by [Doug McLain](https://github.com/nostar/) and the iOS-focused modifications by [Rohith Namboothiri (VU3LVO)](https://github.com/rohithzmoi). Many thanks to Doug for his excellent foundation and contributions to the digital radio community, and to Rohith for the work this fork is based on.
 
 ## License
 
@@ -81,7 +92,7 @@ If you would like to support the development of the Droidstar DMR iOS TestFlight
 
 ---
 
-**73 VU3LVO - Rohith**
+**73 VU3LVO - Rohith** (upstream) • **73 TA3JS - Mehmet** (fork maintainer)
 
 ---
 

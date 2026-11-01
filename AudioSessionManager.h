@@ -31,6 +31,9 @@ void setupBackgroundAudio(void);
 void deactivateBackgroundAudio(void);
 void renewBackgroundTask(void);
 void setPreferredInputDevice(void);
+// RX output preference when no external device (headset/Bluetooth/CarPlay) is connected:
+// true = loudspeaker, false = earpiece. Applied immediately if the session is active.
+void setAudioOutputRoute(bool speaker);
 bool isAppInBackground(void);
 double currentAudioSessionSampleRate(void);
 

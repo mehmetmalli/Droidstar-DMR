@@ -136,6 +136,7 @@ public slots:
     void set_modem(QString modem) { m_modem = modem; }
     void set_playback(QString playback) { m_playback = playback; }
     void set_capture(QString capture) { m_capture = capture; }
+    void set_audio_output(const QString &output);
     void set_swtx(bool swtx) { emit swtx_state_changed(swtx); }
     void set_swrx(bool swrx) { emit swrx_state_changed(swrx); }
     void set_agc(bool agc) { emit agc_state_changed(agc); }

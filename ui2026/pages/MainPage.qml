@@ -208,6 +208,7 @@ Page {
         droidstarRef.set_capture(appState.capture)
         droidstarRef.set_dmr_pc(appState.privateCall ? 1 : 0)
         droidstarRef.set_input_volume(appState.micGain)
+        droidstarRef.set_audio_output(appState.audioOutput)
 
         if (appState.selectedHost && appState.selectedHost !== "") {
             droidstarRef.set_dst(appState.selectedHost)

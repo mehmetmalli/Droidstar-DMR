@@ -1607,6 +1607,17 @@ void DroidStar::set_input_volume(qreal v)
     //audioin->setVolume(v * 0.01);
 }
 
+// "speaker" or "earpiece": where RX audio goes when no headset/Bluetooth/CarPlay is connected.
+// Only iOS routes between the receiver and the loudspeaker; elsewhere this is a no-op.
+void DroidStar::set_audio_output(const QString &output)
+{
+    const bool speaker = (output.compare("earpiece", Qt::CaseInsensitive) != 0);
+#ifdef Q_OS_IOS
+    setAudioOutputRoute(speaker);
+#endif
+    qDebug() << "Audio output preference:" << (speaker ? "speaker" : "earpiece");
+}
+
 void DroidStar::press_tx()
 {
 #ifdef Q_OS_IOS

@@ -278,6 +278,62 @@ Page {
                         }
                     }
 
+                    // iOS only: receiver vs loudspeaker for RX audio when no headset,
+                    // Bluetooth device or CarPlay is connected (those always take priority).
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        visible: Qt.platform.os === "ios"
+                        Label { text: qsTr("Output"); font.pixelSize: 11; opacity: 0.6 }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 10
+                            ButtonGroup { id: audioOutputGroup }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 40
+                                radius: 10
+                                color: speakerRadio.checked ? Qt.rgba(t.accent.r, t.accent.g, t.accent.b, 0.2) : t.surface2
+                                border.color: speakerRadio.checked ? t.accent : t.stroke
+                                border.width: 1
+
+                                RadioButton {
+                                    id: speakerRadio
+                                    anchors.centerIn: parent
+                                    text: qsTr("Speaker")
+                                    checked: page.appState.audioOutput !== "earpiece"
+                                    ButtonGroup.group: audioOutputGroup
+                                    onClicked: {
+                                        page.appState.audioOutput = "speaker"
+                                        page.droidstarRef.set_audio_output("speaker")
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 40
+                                radius: 10
+                                color: earpieceRadio.checked ? Qt.rgba(t.accent.r, t.accent.g, t.accent.b, 0.2) : t.surface2
+                                border.color: earpieceRadio.checked ? t.accent : t.stroke
+                                border.width: 1
+
+                                RadioButton {
+                                    id: earpieceRadio
+                                    anchors.centerIn: parent
+                                    text: qsTr("Earpiece")
+                                    checked: page.appState.audioOutput === "earpiece"
+                                    ButtonGroup.group: audioOutputGroup
+                                    onClicked: {
+                                        page.appState.audioOutput = "earpiece"
+                                        page.droidstarRef.set_audio_output("earpiece")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 10

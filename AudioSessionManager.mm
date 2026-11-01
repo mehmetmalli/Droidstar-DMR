@@ -34,6 +34,9 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     UIBackgroundTaskIdentifier _bgTask;
     BOOL _isAudioSessionActive;
     BOOL _isHandlingRouteChange;
+    // User preference: route RX audio to the loudspeaker (YES) or the earpiece/receiver (NO)
+    // when no external output (headset, Bluetooth, CarPlay, ...) is connected.
+    BOOL _preferSpeaker;
     BOOL _isConnected;
     BOOL _isTransmitting;
     BOOL _isReceiving;
@@ -64,6 +67,8 @@ static void (*g_pttReleaseCallback)(void) = NULL;
 - (void)setupAVAudioSession;
 - (void)setupBackgroundAudio;
 - (void)setPreferredInputDevice;
+- (void)setPreferSpeaker:(BOOL)preferSpeaker;
+- (void)applyPreferredRouting;
 
 // Now Playing & Remote Commands
 - (void)setupRemoteCommandCenter;
@@ -113,6 +118,7 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         _bgTask = UIBackgroundTaskInvalid;
         _isAudioSessionActive = NO;
         _isHandlingRouteChange = NO;
+        _preferSpeaker = YES;
         _isConnected = NO;
         _isTransmitting = NO;
         _isReceiving = NO;
@@ -300,22 +306,9 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         AVAudioSession *session = [AVAudioSession sharedInstance];
         NSError *error = nil;
 
-        // Use PlayAndRecord for VoIP-style audio
-        BOOL success = [session setCategory:AVAudioSessionCategoryPlayAndRecord
-                                withOptions:(AVAudioSessionCategoryOptionDefaultToSpeaker |
-                                             AVAudioSessionCategoryOptionAllowBluetooth |
-                                             AVAudioSessionCategoryOptionAllowBluetoothA2DP)
-                                      error:&error];
-
-        if (!success || error) {
-            NSLog(@"[AudioSessionManager] Error setting category: %@", error.localizedDescription);
+        // PlayAndRecord + VoiceChat with the user's output preference (speaker/earpiece)
+        if (![self applyCategoryAndMode:session force:YES]) {
             return;
-        }
-
-        // VoiceChat mode for echo cancellation and voice processing
-        success = [session setMode:AVAudioSessionModeVoiceChat error:&error];
-        if (!success || error) {
-            NSLog(@"[AudioSessionManager] Error setting mode: %@", error.localizedDescription);
         }
 
         // Set preferences
@@ -324,12 +317,11 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         error = nil;
         [session setPreferredIOBufferDuration:0.02 error:&error]; // ~20ms buffer
 
-        [self configureAudioRoute:session];
         [self setPreferredInputDevice];
 
         // Activate session
         error = nil;
-        success = [session setActive:YES error:&error];
+        BOOL success = [session setActive:YES error:&error];
         if (!success || error) {
             NSLog(@"[AudioSessionManager] Error activating session: %@", error.localizedDescription);
             return;
@@ -337,6 +329,9 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         
         _isAudioSessionActive = YES;
         NSLog(@"[AudioSessionManager] Audio session activated successfully");
+
+        // Port overrides only take effect on an active session, so apply it after activation.
+        [self applyOutputOverride:session];
         
         [self startBackgroundTask];
         
@@ -356,31 +351,21 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         AVAudioSession *session = [AVAudioSession sharedInstance];
         NSError *error = nil;
 
-        // Configure for background playback
-        BOOL success = [session setCategory:AVAudioSessionCategoryPlayAndRecord
-                                withOptions:(AVAudioSessionCategoryOptionDefaultToSpeaker |
-                                             AVAudioSessionCategoryOptionAllowBluetooth |
-                                             AVAudioSessionCategoryOptionAllowBluetoothA2DP)
-                                      error:&error];
+        // Configure for background playback with the user's output preference
+        [self applyCategoryAndMode:session force:YES];
 
-        if (!success || error) {
-            NSLog(@"[AudioSessionManager] Error setting background category: %@", error.localizedDescription);
-        }
-        
-        error = nil;
-        [session setMode:AVAudioSessionModeVoiceChat error:&error];
-        
         // Activate session
         error = nil;
-        success = [session setActive:YES error:&error];
+        BOOL success = [session setActive:YES error:&error];
         if (!success || error) {
             NSLog(@"[AudioSessionManager] Error activating background session: %@", error.localizedDescription);
         } else {
             _isAudioSessionActive = YES;
             NSLog(@"[AudioSessionManager] Background audio session activated");
         }
-        
-        [self configureAudioRoute:session];
+
+        // Port overrides only take effect on an active session.
+        [self applyOutputOverride:session];
         [self startBackgroundTask];
         
         // CRITICAL: Start keep-alive audio when entering background
@@ -393,30 +378,131 @@ static void (*g_pttReleaseCallback)(void) = NULL;
     }
 }
 
-- (void)configureAudioRoute:(AVAudioSession *)session {
-    NSError *error = nil;
-    AVAudioSessionRouteDescription *currentRoute = session.currentRoute;
+#pragma mark - Output Routing (speaker / earpiece / external)
 
-    BOOL hasExternalOutput = NO;
-    for (AVAudioSessionPortDescription *output in currentRoute.outputs) {
-        if ([output.portType isEqualToString:AVAudioSessionPortBluetoothA2DP] ||
-            [output.portType isEqualToString:AVAudioSessionPortBluetoothLE] ||
-            [output.portType isEqualToString:AVAudioSessionPortBluetoothHFP] ||
-            [output.portType isEqualToString:AVAudioSessionPortHeadphones]) {
-            hasExternalOutput = YES;
-            break;
+- (void)setPreferSpeaker:(BOOL)preferSpeaker {
+    // Always re-apply, even when the preference is unchanged: the route may have been
+    // clobbered behind our back (Qt Multimedia resets the category when it opens a sink
+    // or source), and tapping the already-selected option must be able to repair it.
+    BOOL changed = (_preferSpeaker != preferSpeaker);
+    _preferSpeaker = preferSpeaker;
+    if (changed) {
+        NSLog(@"[AudioSessionManager] Output preference changed to %@", preferSpeaker ? @"speaker" : @"earpiece");
+    }
+    if (_isAudioSessionActive) {
+        [self applyPreferredRouting];
+    }
+}
+
+// Category options we always want. Bluetooth HFP is required for wireless CarPlay and
+// BT headsets to be eligible outputs of a record-capable session; DefaultToSpeaker only
+// when the user prefers the loudspeaker over the receiver.
+- (AVAudioSessionCategoryOptions)desiredCategoryOptions {
+    AVAudioSessionCategoryOptions options = AVAudioSessionCategoryOptionAllowBluetooth |
+                                            AVAudioSessionCategoryOptionAllowBluetoothA2DP;
+    if (_preferSpeaker) {
+        options |= AVAudioSessionCategoryOptionDefaultToSpeaker;
+    }
+    return options;
+}
+
+// Anything that isn't the phone's own receiver/speaker: if one of these is routed we must
+// never force the built-in speaker (that would steal audio from CarPlay, headsets, ...).
+- (BOOL)routeHasExternalOutput:(AVAudioSessionRouteDescription *)route {
+    static NSSet<NSString *> *externalPorts = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        externalPorts = [NSSet setWithArray:@[
+            AVAudioSessionPortBluetoothA2DP,
+            AVAudioSessionPortBluetoothLE,
+            AVAudioSessionPortBluetoothHFP,
+            AVAudioSessionPortHeadphones,
+            AVAudioSessionPortCarAudio,
+            AVAudioSessionPortUSBAudio,
+            AVAudioSessionPortAirPlay,
+            AVAudioSessionPortHDMI,
+            AVAudioSessionPortLineOut,
+        ]];
+    });
+    for (AVAudioSessionPortDescription *output in route.outputs) {
+        if ([externalPorts containsObject:output.portType]) {
+            return YES;
         }
     }
+    return NO;
+}
 
-    if (!hasExternalOutput) {
-        BOOL success = [session overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&error];
+- (NSString *)describeRoute:(AVAudioSessionRouteDescription *)route {
+    NSMutableArray<NSString *> *names = [NSMutableArray array];
+    for (AVAudioSessionPortDescription *output in route.outputs) {
+        [names addObject:[NSString stringWithFormat:@"%@ (%@)", output.portType, output.portName]];
+    }
+    return names.count ? [names componentsJoinedByString:@", "] : @"<none>";
+}
+
+// Set PlayAndRecord/VoiceChat with the desired options. Returns NO on a category error.
+// With force:NO it is a no-op when the session already matches, so it is safe to call from
+// the route-change handler without ping-ponging with our own notifications.
+- (BOOL)applyCategoryAndMode:(AVAudioSession *)session force:(BOOL)force {
+    NSError *error = nil;
+    AVAudioSessionCategoryOptions desired = [self desiredCategoryOptions];
+    // Only compare the bits we care about; iOS may add others (e.g. MixWithOthers from Qt).
+    AVAudioSessionCategoryOptions relevant = desired | AVAudioSessionCategoryOptionDefaultToSpeaker;
+    BOOL categoryMatches = [session.category isEqualToString:AVAudioSessionCategoryPlayAndRecord] &&
+                           ((session.categoryOptions & relevant) == desired);
+
+    if (force || !categoryMatches) {
+        BOOL success = [session setCategory:AVAudioSessionCategoryPlayAndRecord
+                                withOptions:desired
+                                      error:&error];
         if (!success || error) {
-            NSLog(@"[AudioSessionManager] Error overriding to speaker: %@", error.localizedDescription);
-        } else {
-            NSLog(@"[AudioSessionManager] Audio output set to speaker");
+            NSLog(@"[AudioSessionManager] Error setting category: %@", error.localizedDescription);
+            return NO;
         }
+        NSLog(@"[AudioSessionManager] Category set (options 0x%lx, prefer %@)",
+              (unsigned long)desired, _preferSpeaker ? @"speaker" : @"earpiece");
+    }
+
+    if (force || ![session.mode isEqualToString:AVAudioSessionModeVoiceChat]) {
+        error = nil;
+        BOOL success = [session setMode:AVAudioSessionModeVoiceChat error:&error];
+        if (!success || error) {
+            NSLog(@"[AudioSessionManager] Error setting mode: %@", error.localizedDescription);
+        }
+    }
+    return YES;
+}
+
+// Force the loudspeaker when the user prefers it and nothing external is connected;
+// otherwise clear any override so iOS picks the receiver or the external device.
+- (void)applyOutputOverride:(AVAudioSession *)session {
+    NSError *error = nil;
+    AVAudioSessionRouteDescription *currentRoute = session.currentRoute;
+    BOOL hasExternalOutput = [self routeHasExternalOutput:currentRoute];
+    AVAudioSessionPortOverride override = (_preferSpeaker && !hasExternalOutput)
+                                              ? AVAudioSessionPortOverrideSpeaker
+                                              : AVAudioSessionPortOverrideNone;
+
+    BOOL success = [session overrideOutputAudioPort:override error:&error];
+    if (!success || error) {
+        NSLog(@"[AudioSessionManager] Error setting output override: %@", error.localizedDescription);
+        return;
+    }
+    if (hasExternalOutput) {
+        NSLog(@"[AudioSessionManager] External audio output in use: %@", [self describeRoute:currentRoute]);
     } else {
-        NSLog(@"[AudioSessionManager] External audio output detected");
+        NSLog(@"[AudioSessionManager] Audio output set to %@ (route: %@)",
+              _preferSpeaker ? @"speaker" : @"earpiece", [self describeRoute:session.currentRoute]);
+    }
+}
+
+// Re-assert our routing on the live session (category options + output override) without
+// deactivating/reactivating it. Used when the preference changes and when something else
+// (Qt Multimedia resets the category when it opens a sink/source) has clobbered it.
+- (void)applyPreferredRouting {
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    if ([self applyCategoryAndMode:session force:NO]) {
+        [self applyOutputOverride:session];
     }
 }
 
@@ -748,13 +834,39 @@ static void (*g_pttReleaseCallback)(void) = NULL;
         AVAudioSessionRouteChangeReason reason = (AVAudioSessionRouteChangeReason)
             [notification.userInfo[AVAudioSessionRouteChangeReasonKey] unsignedIntegerValue];
         
-        NSLog(@"[AudioSessionManager] Audio route changed, reason: %lu", (unsigned long)reason);
-        
+        AVAudioSession *session = [AVAudioSession sharedInstance];
+        NSLog(@"[AudioSessionManager] Audio route changed, reason: %lu, now: %@ (category %@, options 0x%lx)",
+              (unsigned long)reason, [self describeRoute:session.currentRoute],
+              session.category, (unsigned long)session.categoryOptions);
+
         if (reason == AVAudioSessionRouteChangeReasonOldDeviceUnavailable ||
             reason == AVAudioSessionRouteChangeReasonNewDeviceAvailable) {
             [self setupAVAudioSession];
+        } else if (reason == AVAudioSessionRouteChangeReasonCategoryChange ||
+                   reason == AVAudioSessionRouteChangeReasonOverride ||
+                   reason == AVAudioSessionRouteChangeReasonRouteConfigurationChange) {
+            // Qt Multimedia re-sets the category (dropping DefaultToSpeaker/AllowBluetooth and
+            // clearing the port override) whenever it opens an audio sink/source. Put our
+            // routing back; this is a no-op when the session already matches.
+            if (self->_isAudioSessionActive) {
+                AVAudioSessionCategoryOptions desired = [self desiredCategoryOptions];
+                BOOL clobbered = ![session.category isEqualToString:AVAudioSessionCategoryPlayAndRecord] ||
+                                 ![session.mode isEqualToString:AVAudioSessionModeVoiceChat] ||
+                                 ((session.categoryOptions & desired) != desired);
+                [self applyPreferredRouting];
+                // Qt can re-apply its own category immediately after us (e.g. when a sink or
+                // source is starting), so re-assert once more once that has settled.
+                if (clobbered) {
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)),
+                                   dispatch_get_main_queue(), ^{
+                        if (self->_isAudioSessionActive) {
+                            [self applyPreferredRouting];
+                        }
+                    });
+                }
+            }
         }
-        
+
         self->_isHandlingRouteChange = NO;
     });
 }
@@ -795,6 +907,19 @@ static void (*g_pttReleaseCallback)(void) = NULL;
 @end
 
 #pragma mark - C Interface
+
+extern "C" void setAudioOutputRoute(bool speaker) {
+    void (^apply)(void) = ^{
+        [[AudioSessionManager sharedManager] setPreferSpeaker:(speaker ? YES : NO)];
+    };
+    // Apply synchronously when already on the main thread so a connect that follows
+    // immediately picks up the new preference.
+    if ([NSThread isMainThread]) {
+        apply();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), apply);
+    }
+}
 
 extern "C" void setupAVAudioSession() {
     [[AudioSessionManager sharedManager] setupAVAudioSession];

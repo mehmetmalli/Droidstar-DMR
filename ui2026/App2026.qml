@@ -53,6 +53,7 @@ ApplicationWindow {
         category: "audio"
         property alias micGain: appState.micGain
         property alias privateCall: appState.privateCall
+        property alias audioOutput: appState.audioOutput
     }
 
     // Material base
@@ -104,6 +105,8 @@ ApplicationWindow {
         property bool swrx: false
         property bool agc: true
         property real micGain: 0.5
+        // iOS RX output when nothing external is connected: "speaker" or "earpiece"
+        property string audioOutput: "speaker"
         property int outputLevel: 0
         property bool connected: false
         // Legacy-style connection state (0=disconnected, 1=connecting, 2=connected, 5=error)

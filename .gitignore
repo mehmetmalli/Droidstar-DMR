@@ -1,0 +1,49 @@
+# macOS
+.DS_Store
+._*
+
+# Qt build artifacts
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.o
+*.obj
+Makefile
+Makefile.*
+.qmake.stash
+qtquickcontrols*.cpp
+*.qmlcache
+*.swp
+*~
+
+# Qt Creator user-specific settings
+*.pro.user
+*.pro.user.*
+*.autosave
+CMakeLists.txt.user*
+
+# Logs
+*.log
+
+# Xcode / iOS build outputs
+xcuserdata/
+DerivedData/
+*.xcarchive
+*.ipa
+*.app
+*.dSYM
+*.dsym
+build-*/
+
+# Android build outputs
+build/
+.gradle/
+local.properties
+android-build/
+
+# Package archives / temp files
+*.tar.gz
+*.zip
+*.bak
+*.tmp
